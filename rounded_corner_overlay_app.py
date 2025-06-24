@@ -1,28 +1,54 @@
 import streamlit as st
 import fitz  # PyMuPDF
+import io
 
-doc = fitz.open("input_label.pdf")
-page = doc[0]
+# Convert inches to PDF points (1 in = 72 pts)
+def inches_to_points(inches):
+    return inches * 72
 
-# Define the page/label rectangle and the corner radius
-page_rect = page.rect
-corner_radius = 20  # example radius in points (adjust as needed)
+st.title("Rounded-Corner Overlay for Label PDFs")
 
-# Create a new Shape for the overlay
-shape = page.new_shape()
+uploaded_file = st.file_uploader("Upload a vector-based single-page PDF", type=["pdf"])
 
-# Draw outer boundary (full page rectangle) and inner rounded rectangle
-shape.draw_rect(page_rect)  # outer rectangle (covers full page)
-shape.draw_rect(page_rect, radius=corner_radius)  # inner rounded-corner rect
+# Default radius: 0.125 in (1/8")
+corner_radius_in = st.number_input("Corner Radius (inches)", min_value=0.01, value=0.125, step=0.01)
 
-# Finish the shape with white fill, using even-odd rule to hollow out the center
-# (This fills outside the rounded rect)
-shape.finish(fill=(1, 1, 1), even_odd=True)
+if uploaded_file:
+    # Convert radius to points
+    corner_radius_pt = inches_to_points(corner_radius_in)
 
-# (Optional for debugging: add a visible border to the inner shape to verify curvature)
-# shape.finish(color=(1, 0, 0), width=0.5, fill=(1, 1, 1), even_odd=True)
+    # Load uploaded PDF
+    input_pdf = fitz.open(stream=uploaded_file.read(), filetype="pdf")
 
-# Commit the overlay in the foreground
-shape.commit(overlay=True)
+    # Work on first page only (single label)
+    page = input_pdf[0]
+    page_rect = page.rect
 
-doc.save("output_label_with_mask.pdf")
+    # Create overlay shape
+    shape = page.new_shape()
+
+    # Outer rect (full page)
+    shape.draw_rect(page_rect)
+
+    # Inner rounded rect (label area to preserve)
+    shape.draw_rect(page_rect, radius=corner_radius_pt)
+
+    # Fill white using even-odd fill rule (masks only the corners)
+    shape.finish(fill=(1, 1, 1), even_odd=True)
+
+    # Apply overlay
+    shape.commit(overlay=True)
+
+    # Save to memory buffer
+    output_buffer = io.BytesIO()
+    input_pdf.save(output_buffer)
+    input_pdf.close()
+
+    # Show download button
+    st.success("Rounded-corner overlay applied!")
+    st.download_button(
+        label="Download Modified PDF",
+        data=output_buffer.getvalue(),
+        file_name="rounded_overlay_label.pdf",
+        mime="application/pdf"
+    )
