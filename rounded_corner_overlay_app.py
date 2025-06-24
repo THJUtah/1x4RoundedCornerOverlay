@@ -10,6 +10,41 @@ radius_pts = FIXED_RADIUS_IN * DPI
 padding_pts = FIXED_PADDING_IN * DPI
 
 def add_rounded_corner_mask(input_path, output_path):
+    import fitz  # PyMuPDF
+    doc = fitz.open(input_path)
+    if len(doc) != 1:
+        raise ValueError("Only single-page PDFs are supported.")
+
+    page = doc[0]
+    page_width, page_height = page.rect.width, page.rect.height
+
+    r = 0.125 * 72  # corner radius in points (9pt = 0.125in)
+    pad = 0.0       # padding in points
+
+    x0 = pad
+    y0 = pad
+    x1 = page_width - pad
+    y1 = page_height - pad
+
+    # SVG-style path for rounded rectangle
+    path_str = (
+        f"M{x0 + r},{y0} "
+        f"L{x1 - r},{y0} "
+        f"A{r},{r} 0 0 1 {x1},{y0 + r} "
+        f"L{x1},{y1 - r} "
+        f"A{r},{r} 0 0 1 {x1 - r},{y1} "
+        f"L{x0 + r},{y1} "
+        f"A{r},{r} 0 0 1 {x0},{y1 - r} "
+        f"L{x0},{y0 + r} "
+        f"A{r},{r} 0 0 1 {x0 + r},{y0} Z"
+    )
+
+    shape = page.new_shape()
+    shape.draw_path(path_str)
+    shape.finish(color=None, fill=(1, 1, 1), overlay=True)
+    shape.commit()
+    doc.save(output_path)
+
     doc = fitz.open(input_path)
     if len(doc) != 1:
         raise ValueError("Only single-page PDFs are supported.")
