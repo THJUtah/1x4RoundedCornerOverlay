@@ -27,10 +27,10 @@ if uploaded_file:
     shape = page.new_shape()
     shape.draw_rect(page_rect)
 
-# Inset inner rounded rect to prevent edge artifact
-inset = 0.5  # points
-inner_rect = page_rect.inflate(-inset, -inset)
-shape.draw_rect(inner_rect, radius=radius_frac)
+    # Inset inner rounded rect to prevent edge artifact
+    inset = 0.5  # points
+    inner_rect = page_rect.inflate(-inset, -inset)
+    shape.draw_rect(inner_rect, radius=radius_frac)
     shape.finish(fill=(1, 1, 1), even_odd=True, stroke_opacity=0)
     shape.commit(overlay=True)
 
