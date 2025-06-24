@@ -20,12 +20,19 @@ if uploaded_file:
 
     # Compute safe fractional radius for PyMuPDF
     min_side = min(width, height)
-    radius_frac = fixed_radius_pts / min_side
-    radius_frac = min(radius_frac, 0.5 - 0.001)  # must be <= 0.5
+    radius_frac = fixed_radius_pts / min(page_rect.width, page_rect.height)
+    radius_frac = min(radius_frac, 0.5 - 0.001)  # must stay <= 0.5
 
     # Create the white mask overlay using even-odd fill
     shape = page.new_shape()
     shape.draw_rect(page_rect)
+    inset = 0.5  # in points
+    inner_rect = fitz.Rect(
+    page_rect.x0 + inset,
+    page_rect.y0 + inset,
+    page_rect.x1 - inset,
+    page_rect.y1 - inset
+    )
 
     # Inset inner rounded rect to prevent edge artifact
     inset = 0.5  # points
