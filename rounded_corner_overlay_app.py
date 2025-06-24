@@ -14,15 +14,15 @@ def add_rounded_corner_mask(input_path, output_path):
 
     page0 = src[0]
     w, h = page0.rect.width, page0.rect.height
-    r = 0.125 * 72
-    k = 0.5522847498
+    r = 0.125 * 72  # 0.125 inches in points
+    k = 0.5522847498  # Bézier arc approximation constant
 
-    # Create new PDF to overlay manually
+    # Create new PDF with original page inserted
     doc = fitz.open()
     page = doc.new_page(width=w, height=h)
-    page.show_pdf_page(page.rect, src, 0)  # insert original PDF as background
+    page.show_pdf_page(page.rect, src, 0)  # place original content on base layer
 
-    def draw_corner_mask(x, y, angle):
+    def draw_corner_arc(x, y, angle):
         if angle == 0:  # bottom-right
             p0 = (x, y - r)
             c1 = (x + k * r, y - r)
@@ -46,23 +46,18 @@ def add_rounded_corner_mask(input_path, output_path):
         else:
             return
 
-        # Arc wedge (filled)
-        path = page.new_shape()
-        path.move_to(x, y)
-        path.line_to(*p0)
-        path.curve_to(c1, c2, p1)
-        path.line_to(x, y)
-        path.close_path()
-        path.finish(fill=(1, 1, 1))
-        path.commit()
+        # Draw filled Bezier arc
+        page.draw_bezier(p0, c1, c2, p1, color=None, fill=(1, 1, 1), overlay=True)
+        # Close triangle to center
+        page.draw_polyline([p1, (x, y), p0], color=None, fill=(1, 1, 1), closePath=True, overlay=True)
 
-    draw_corner_mask(0, 0, 180)
-    draw_corner_mask(w, 0, 90)
-    draw_corner_mask(0, h, 270)
-    draw_corner_mask(w, h, 0)
+    # Draw all 4 corners
+    draw_corner_arc(0, 0, 180)     # top-left
+    draw_corner_arc(w, 0, 90)      # top-right
+    draw_corner_arc(0, h, 270)     # bottom-left
+    draw_corner_arc(w, h, 0)       # bottom-right
 
     doc.save(output_path)
-
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Rounded Corner Overlay", layout="centered")
