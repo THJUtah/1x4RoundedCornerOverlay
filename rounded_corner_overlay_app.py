@@ -27,7 +27,7 @@ if uploaded_file:
     shape = page.new_shape()
     shape.draw_rect(page_rect)  # Outer full-page rectangle
     shape.draw_rect(page_rect, radius=radius_frac)  # Inner rounded rectangle
-    shape.finish(fill=(1, 1, 1), even_odd=True)
+    shape.finish(fill=(1, 1, 1), even_odd=True, stroke_opacity=0)
     shape.commit(overlay=True)
 
     # Save to buffer
