@@ -11,7 +11,7 @@ def add_rounded_corner_mask(input_path, output_path):
     page = doc[0]
     page_width, page_height = page.rect.width, page.rect.height
 
-    r = 0.125 * 72  # 0.125 inch corner radius
+    r = 0.125 * 72  # 0.125 inch radius in points
     pad = 0.0
 
     x0 = pad
@@ -19,15 +19,20 @@ def add_rounded_corner_mask(input_path, output_path):
     x1 = page_width - pad
     y1 = page_height - pad
 
-    # Draw 4 white circles to mask the corners
-    page.draw_circle(center=(x0 + r, y0 + r), radius=r, color=None, fill=(1, 1, 1), overlay=True)  # top-left
-    page.draw_circle(center=(x1 - r, y0 + r), radius=r, color=None, fill=(1, 1, 1), overlay=True)  # top-right
-    page.draw_circle(center=(x0 + r, y1 - r), radius=r, color=None, fill=(1, 1, 1), overlay=True)  # bottom-left
-    page.draw_circle(center=(x1 - r, y1 - r), radius=r, color=None, fill=(1, 1, 1), overlay=True)  # bottom-right
+    # Draw 4 white quarter-circle masks in each corner
+    # Each mask is a full circle but only the quadrant will overlap, simulating the corner cut
 
-    # Draw center and side rectangles to complete the mask
-    page.draw_rect(fitz.Rect(x0 + r, y0, x1 - r, y1), color=None, fill=(1, 1, 1), overlay=True)  # horizontal center
-    page.draw_rect(fitz.Rect(x0, y0 + r, x1, y1 - r), color=None, fill=(1, 1, 1), overlay=True)  # vertical sides
+    # Top-left
+    page.draw_circle(center=(x0 + r, y0 + r), radius=r, color=None, fill=(1, 1, 1), overlay=True)
+
+    # Top-right
+    page.draw_circle(center=(x1 - r, y0 + r), radius=r, color=None, fill=(1, 1, 1), overlay=True)
+
+    # Bottom-left
+    page.draw_circle(center=(x0 + r, y1 - r), radius=r, color=None, fill=(1, 1, 1), overlay=True)
+
+    # Bottom-right
+    page.draw_circle(center=(x1 - r, y1 - r), radius=r, color=None, fill=(1, 1, 1), overlay=True)
 
     doc.save(output_path)
 
