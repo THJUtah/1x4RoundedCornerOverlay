@@ -5,58 +5,58 @@ import os
 from math import pi
 
 def add_rounded_corner_mask(input_path, output_path):
+    import fitz
+    from math import pi
+
     doc = fitz.open(input_path)
     if len(doc) != 1:
         raise ValueError("Only single-page PDFs are supported.")
 
     page = doc[0]
     w, h = page.rect.width, page.rect.height
-    r = 0.125 * 72  # 0.125 inch corner radius in points
+    r = 0.125 * 72  # radius in points
 
-    # Draw quarter arc in a corner using Bezier approximation
-    def quarter_arc(center, start_angle_deg):
-        k = 0.5522847498  # constant for circular arc approximation
+    # Constant to approximate a circle with Bézier curves
+    k = 0.5522847498
 
-        x, y = center
-        path = page.new_shape()
-
-        if start_angle_deg == 0:  # bottom-right
-            p0 = (x, y - r)
-            p1 = (x + k*r, y - r)
-            p2 = (x + r, y - k*r)
-            p3 = (x + r, y)
-        elif start_angle_deg == 90:  # top-right
-            p0 = (x - r, y)
-            p1 = (x - r, y - k*r)
-            p2 = (x - k*r, y - r)
-            p3 = (x, y - r)
-        elif start_angle_deg == 180:  # top-left
-            p0 = (x, y + r)
-            p1 = (x - k*r, y + r)
-            p2 = (x - r, y + k*r)
-            p3 = (x - r, y)
-        elif start_angle_deg == 270:  # bottom-left
-            p0 = (x + r, y)
-            p1 = (x + r, y + k*r)
-            p2 = (x + k*r, y + r)
-            p3 = (x, y + r)
+    # --- Draw quarter arc shapes manually using Bezier paths ---
+    def draw_quarter_corner(x, y, angle):
+        # Creates a 90-degree arc from the corner inward
+        if angle == 0:  # bottom-right
+            start = (x, y - r)
+            c1 = (x + k*r, y - r)
+            c2 = (x + r, y - k*r)
+            end = (x + r, y)
+        elif angle == 90:  # top-right
+            start = (x - r, y)
+            c1 = (x - r, y - k*r)
+            c2 = (x - k*r, y - r)
+            end = (x, y - r)
+        elif angle == 180:  # top-left
+            start = (x, y + r)
+            c1 = (x - k*r, y + r)
+            c2 = (x - r, y + k*r)
+            end = (x - r, y)
+        elif angle == 270:  # bottom-left
+            start = (x + r, y)
+            c1 = (x + r, y + k*r)
+            c2 = (x + k*r, y + r)
+            end = (x, y + r)
         else:
             return
 
-        path.move_to(x, y)
-        path.line_to(*p0)
-        path.curve_to(p1, p2, p3)
-        path.close_path()
-        path.finish(color=None, fill=(1, 1, 1), overlay=True)
-        path.commit()
+        # Draw triangle corner + arc
+        page.draw_line((x, y), start, color=None, fill=(1, 1, 1), overlay=True)
+        page.draw_bezier(start, c1, c2, end, color=None, fill=(1, 1, 1), overlay=True)
+        page.draw_line(end, (x, y), color=None, fill=(1, 1, 1), overlay=True)
 
-    # Draw masks in all 4 corners
-    quarter_arc((0, 0), 180)       # top-left
-    quarter_arc((w, 0), 90)        # top-right
-    quarter_arc((0, h), 270)       # bottom-left
-    quarter_arc((w, h), 0)         # bottom-right
+    draw_quarter_corner(0, 0, 180)     # top-left
+    draw_quarter_corner(w, 0, 90)      # top-right
+    draw_quarter_corner(0, h, 270)     # bottom-left
+    draw_quarter_corner(w, h, 0)       # bottom-right
 
     doc.save(output_path)
+
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Rounded Corner Overlay", layout="centered")
