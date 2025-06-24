@@ -3,15 +3,34 @@ import fitz  # PyMuPDF
 from tempfile import NamedTemporaryFile
 import os
 
+def draw_rounded_rect(page, x0, y0, x1, y1, r, color=(1, 1, 1)):
+    # Draws a white rounded rectangle using only legacy-safe methods
+    # Top edge
+    page.draw_line((x0 + r, y0), (x1 - r, y0), color=None, fill=color, overlay=True)
+    # Top-right corner
+    page.draw_bezier((x1 - r, y0), (x1, y0), (x1, y0 + r), color=None, fill=color, overlay=True)
+    # Right edge
+    page.draw_line((x1, y0 + r), (x1, y1 - r), color=None, fill=color, overlay=True)
+    # Bottom-right corner
+    page.draw_bezier((x1, y1 - r), (x1, y1), (x1 - r, y1), color=None, fill=color, overlay=True)
+    # Bottom edge
+    page.draw_line((x1 - r, y1), (x0 + r, y1), color=None, fill=color, overlay=True)
+    # Bottom-left corner
+    page.draw_bezier((x0 + r, y1), (x0, y1), (x0, y1 - r), color=None, fill=color, overlay=True)
+    # Left edge
+    page.draw_line((x0, y1 - r), (x0, y0 + r), color=None, fill=color, overlay=True)
+    # Top-left corner
+    page.draw_bezier((x0, y0 + r), (x0, y0), (x0 + r, y0), color=None, fill=color, overlay=True)
+
 def add_rounded_corner_mask(input_path, output_path):
     doc = fitz.open(input_path)
     if len(doc) != 1:
         raise ValueError("Only single-page PDFs are supported.")
-
+    
     page = doc[0]
     page_width, page_height = page.rect.width, page.rect.height
 
-    r = 0.125 * 72  # 0.125 inch radius in points
+    r = 0.125 * 72  # radius in points (0.125 inches)
     pad = 0.0       # no padding
 
     x0 = pad
@@ -19,19 +38,7 @@ def add_rounded_corner_mask(input_path, output_path):
     x1 = page_width - pad
     y1 = page_height - pad
 
-    path = page.new_path()
-    path.move_to(x0 + r, y0)
-    path.line_to(x1 - r, y0)
-    path.arc(x1 - r, y0 + r, r, 270, 360)  # top-right corner
-    path.line_to(x1, y1 - r)
-    path.arc(x1 - r, y1 - r, r, 0, 90)     # bottom-right corner
-    path.line_to(x0 + r, y1)
-    path.arc(x0 + r, y1 - r, r, 90, 180)   # bottom-left corner
-    path.line_to(x0, y0 + r)
-    path.arc(x0 + r, y0 + r, r, 180, 270)  # top-left corner
-    path.close()
-
-    page.draw_path(path, color=None, fill=(1, 1, 1), overlay=True)
+    draw_rounded_rect(page, x0, y0, x1, y1, r)
     doc.save(output_path)
 
 # --- Streamlit UI ---
