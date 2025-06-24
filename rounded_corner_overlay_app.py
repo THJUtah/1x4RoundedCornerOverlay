@@ -1,8 +1,3 @@
-import streamlit as st
-import fitz  # PyMuPDF
-from tempfile import NamedTemporaryFile
-import os
-
 def add_rounded_corner_mask(input_path, output_path):
     import fitz
     doc = fitz.open(input_path)
@@ -62,30 +57,3 @@ def add_rounded_corner_mask(input_path, output_path):
     quarter_arc((w, h), 0)             # bottom-right
 
     doc.save(output_path)
-
-
-# --- Streamlit UI ---
-st.set_page_config(page_title="Rounded Corner Overlay", layout="centered")
-st.title("🟦 Rounded Corner Overlay for Vector PDFs")
-st.write("Adds a white mask with 0.125\" simulated rounded corners (legacy-compatible).")
-
-uploaded_file = st.file_uploader("📎 Upload a single-label vector PDF", type=["pdf"])
-
-if uploaded_file and st.button("➕ Generate Overlay"):
-    with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_in:
-        tmp_in.write(uploaded_file.read())
-        tmp_in.flush()
-
-        output_path = tmp_in.name.replace(".pdf", "_rounded.pdf")
-        try:
-            add_rounded_corner_mask(tmp_in.name, output_path)
-
-            with open(output_path, "rb") as f:
-                st.success("✅ Overlay created successfully!")
-                st.download_button("📥 Download PDF", f, "rounded_overlay.pdf", mime="application/pdf")
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
-        finally:
-            os.remove(tmp_in.name)
-            if os.path.exists(output_path):
-                os.remove(output_path)
