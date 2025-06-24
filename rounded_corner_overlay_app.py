@@ -3,14 +3,7 @@ import fitz  # PyMuPDF
 from tempfile import NamedTemporaryFile
 import os
 
-DPI = 72
-FIXED_RADIUS_IN = 0.125  # inches
-FIXED_PADDING_IN = 0.0   # inches
-radius_pts = FIXED_RADIUS_IN * DPI
-padding_pts = FIXED_PADDING_IN * DPI
-
 def add_rounded_corner_mask(input_path, output_path):
-    import fitz  # PyMuPDF
     doc = fitz.open(input_path)
     if len(doc) != 1:
         raise ValueError("Only single-page PDFs are supported.")
@@ -18,64 +11,27 @@ def add_rounded_corner_mask(input_path, output_path):
     page = doc[0]
     page_width, page_height = page.rect.width, page.rect.height
 
-    r = 0.125 * 72  # corner radius in points (9pt = 0.125in)
-    pad = 0.0       # padding in points
+    r = 0.125 * 72  # 0.125 inch radius in points
+    pad = 0.0       # no padding
 
     x0 = pad
     y0 = pad
     x1 = page_width - pad
     y1 = page_height - pad
 
-    # SVG-style path for rounded rectangle
-    path_str = (
-        f"M{x0 + r},{y0} "
-        f"L{x1 - r},{y0} "
-        f"A{r},{r} 0 0 1 {x1},{y0 + r} "
-        f"L{x1},{y1 - r} "
-        f"A{r},{r} 0 0 1 {x1 - r},{y1} "
-        f"L{x0 + r},{y1} "
-        f"A{r},{r} 0 0 1 {x0},{y1 - r} "
-        f"L{x0},{y0 + r} "
-        f"A{r},{r} 0 0 1 {x0 + r},{y0} Z"
-    )
+    path = page.new_path()
+    path.move_to(x0 + r, y0)
+    path.line_to(x1 - r, y0)
+    path.arc(x1 - r, y0 + r, r, 270, 360)  # top-right corner
+    path.line_to(x1, y1 - r)
+    path.arc(x1 - r, y1 - r, r, 0, 90)     # bottom-right corner
+    path.line_to(x0 + r, y1)
+    path.arc(x0 + r, y1 - r, r, 90, 180)   # bottom-left corner
+    path.line_to(x0, y0 + r)
+    path.arc(x0 + r, y0 + r, r, 180, 270)  # top-left corner
+    path.close()
 
-    shape = page.new_shape()
-    shape.draw_path(path_str)
-    shape.finish(color=None, fill=(1, 1, 1), overlay=True)
-    shape.commit()
-    doc.save(output_path)
-
-    doc = fitz.open(input_path)
-    if len(doc) != 1:
-        raise ValueError("Only single-page PDFs are supported.")
-
-    page = doc[0]
-    page_width, page_height = page.rect.width, page.rect.height
-
-    r = radius_pts
-    pad = padding_pts
-
-    x0 = pad
-    y0 = pad
-    x1 = page_width - pad
-    y1 = page_height - pad
-
-    shape = page.new_shape()
-
-    # Rounded rectangle path
-    shape.move_to(x0 + r, y0)
-    shape.line_to(x1 - r, y0)
-    shape.draw_bezier((x1 - r, y0), (x1, y0), (x1, y0 + r))
-    shape.line_to(x1, y1 - r)
-    shape.draw_bezier((x1, y1 - r), (x1, y1), (x1 - r, y1))
-    shape.line_to(x0 + r, y1)
-    shape.draw_bezier((x0 + r, y1), (x0, y1), (x0, y1 - r))
-    shape.line_to(x0, y0 + r)
-    shape.draw_bezier((x0, y0 + r), (x0, y0), (x0 + r, y0))
-    shape.close_path()
-
-    shape.finish(color=None, fill=(1, 1, 1), overlay=True)
-    shape.commit()
+    page.draw_path(path, color=None, fill=(1, 1, 1), overlay=True)
     doc.save(output_path)
 
 # --- Streamlit UI ---
