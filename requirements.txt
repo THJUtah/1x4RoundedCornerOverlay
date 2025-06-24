@@ -1,2 +1,2 @@
 streamlit
-pymupdf
+pymupdf>=1.22.5
