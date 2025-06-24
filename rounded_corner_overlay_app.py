@@ -5,6 +5,9 @@ import os
 from math import pi
 
 def add_rounded_corner_mask(input_path, output_path):
+    import fitz
+    from math import pi
+
     doc = fitz.open(input_path)
     if len(doc) != 1:
         raise ValueError("Only single-page PDFs are supported.")
@@ -12,44 +15,42 @@ def add_rounded_corner_mask(input_path, output_path):
     page = doc[0]
     w, h = page.rect.width, page.rect.height
     r = 0.125 * 72  # 0.125 inches in points
-    k = 0.5522847498  # Bezier arc constant
+    k = 0.5522847498  # Bezier constant
 
-    def draw_corner_arc(center, angle):
-        x, y = center
-
+    def draw_corner_mask(x, y, angle):
         if angle == 0:  # bottom-right
             p0 = (x, y - r)
-            c1 = (x + k*r, y - r)
-            c2 = (x + r, y - k*r)
+            c1 = (x + k * r, y - r)
+            c2 = (x + r, y - k * r)
             p1 = (x + r, y)
         elif angle == 90:  # top-right
             p0 = (x - r, y)
-            c1 = (x - r, y - k*r)
-            c2 = (x - k*r, y - r)
+            c1 = (x - r, y - k * r)
+            c2 = (x - k * r, y - r)
             p1 = (x, y - r)
         elif angle == 180:  # top-left
             p0 = (x, y + r)
-            c1 = (x - k*r, y + r)
-            c2 = (x - r, y + k*r)
+            c1 = (x - k * r, y + r)
+            c2 = (x - r, y + k * r)
             p1 = (x - r, y)
         elif angle == 270:  # bottom-left
             p0 = (x + r, y)
-            c1 = (x + r, y + k*r)
-            c2 = (x + k*r, y + r)
+            c1 = (x + r, y + k * r)
+            c2 = (x + k * r, y + r)
             p1 = (x, y + r)
         else:
             return
 
-        # Fill the quarter arc with 3-point polygon + Bezier
-        page.draw_bezier(p0, c1, c2, p1, color=None, overlay=True)
-        page.draw_line(p1, (x, y))  # close triangle edge
-        page.draw_line((x, y), p0)  # close triangle edge
+        # Draw the triangle + arc manually using a filled polygon
+        # Triangle: corner -> p0 -> bezier curve -> p1 -> corner
+        page.draw_bezier(p0, c1, c2, p1, color=None, fill=(1, 1, 1), overlay=True)
+        page.draw_line(p1, (x, y), color=None, overlay=True)
+        page.draw_line((x, y), p0, color=None, overlay=True)
 
-    # Draw each corner arc
-    draw_corner_arc((0, 0), 180)       # top-left
-    draw_corner_arc((w, 0), 90)        # top-right
-    draw_corner_arc((0, h), 270)       # bottom-left
-    draw_corner_arc((w, h), 0)         # bottom-right
+    draw_corner_mask(0, 0, 180)     # top-left
+    draw_corner_mask(w, 0, 90)      # top-right
+    draw_corner_mask(0, h, 270)     # bottom-left
+    draw_corner_mask(w, h, 0)       # bottom-right
 
     doc.save(output_path)
 
