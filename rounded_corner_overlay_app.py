@@ -1,3 +1,4 @@
+import streamlit as st
 import fitz  # PyMuPDF
 
 doc = fitz.open("input_label.pdf")
